@@ -1,79 +1,82 @@
 assume CS:code,DS:data
-
+ 
 data segment
-a db 10, 2, 21, 40, 45, 15, 8
+a dw 10, 2, 21, 40, 45, 15, 8
 len EQU $-a
-minDiff db 127
-minDiffIndex db 0
-result10 db ?, ?, ?, 13, 10, '$'
+minDiff dw 65535
+minDiffIndex dw 0
+result10 db ?, ?, ?, ?, ?, 13, 10, '$'
+diffStr db "Minimal diference is: $"
+indexStr db "Index: $"
 data ends
-
+ 
 ; Определить, какие два последовательных элемента массива наименее
 ; отличаются друг от друга. Найти индекс первого элемента пары. 
-
+ 
 code segment
-
-print proc ;prints byte number from al register
-xor ah, ah
-mov bl, 100
-div bl
-add al, '0'
-mov result10[0], al
-mov al, ah
-xor ah, ah
-mov bl, 10
-div bl
-add al, '0'
-add ah, '0'
-mov result10[1], al
-mov result10[2], ah
-mov dx, offset result10
+ 
+printWord proc
+mov cx, 5
+mov bx, 10
+printLoop:
+	xor dx, dx
+	div bx
+	mov si, cx
+	add dl, '0'
+	mov result10[si-1], dl
+loop printLoop
 mov ah, 09h
+mov dx, offset result10
 int 21h
 ret
-print endp
-
+printWord endp
+ 
+ 
+start:
 start:
 mov AX, data
 mov DS, AX
 
 mov cx, len
+mov si, len
+shr cx, 1
 sub cx, 1
-l1:
-	mov si, cx
-	
-	mov al, a[si]
-	mov bl, a[si-1]
-	;cmp a[cx], a[cx-1]
-	cmp al, bl
-	jle else1
-		sub al, a[si-1]
-		mov bl, minDiff
-		cmp bl, al
-		jle endOfLoop
-			mov minDiff, al
-			mov ax, si
-			mov minDiffIndex, al 
+l1: ; for(int i = a.size - 1; i > 0; i++)
+	sub si, 2
+	mov ax, a[si]
+	mov bx, a[si-2]
+	cmp ax, bx
+	jbe else1 ; if(a[i] > a[i-1])
+		sub ax, bx; a[i] - a[i-1]
+		cmp minDiff, ax
+		jbe endOfLoop ;if(minDiff > a[i] - a[i-1])
+			mov minDiff, ax
+			mov minDiffIndex, cx 
 			dec minDiffIndex
 			jmp endOfLoop
-	else1:
-		mov al, a[si-1]
-		sub al, a[si]
-		mov bl, minDiff
-		cmp minDiff, al
-		jle endOfLoop
-			mov minDiff, al
-			mov ax, si
-			mov minDiffIndex, al
+	else1: ;else
+		sub bx, ax
+		cmp minDiff, bx ; if(minDiff > a[i-1] - a[i]
+		jbe endOfLoop
+			mov minDiff, cx
+			mov minDiffIndex, ax
 			dec minDiffIndex
 		endOfLoop:
 loop l1
 
-mov al, minDiff
-call print
+mov ah, 09h
+mov dx, offset diffStr
+int 21h
 
-mov al, minDiffIndex
-call print
+mov ax, minDiff
+call printWord
+
+mov ah, 09h
+mov dx, offset indexStr
+int 21h
+
+mov ax, minDiffIndex
+call printWord
 
 mov AX,4C00h
 int 21h
