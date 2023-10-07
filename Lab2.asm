@@ -1,7 +1,7 @@
 assume CS:code,DS:data
  
 data segment
-a dw 10
+a dw 10, 14, 16, 30000, 30001, 89
 len EQU $-a
 minDiff dw 65535
 minDiffIndex dw 0
@@ -34,7 +34,6 @@ printWord endp
  
  
 start:
-start:
 mov AX, data
 mov DS, AX
 
@@ -45,11 +44,11 @@ sub cx, 1
 
 cmp cx, 0; checks array with len == 1
 jne moreThanOneElement
-mov dx, offset oneElementStr
-mov ah, 09h
-int 21h
-mov AX,4C00h
-int 21h
+	mov dx, offset oneElementStr
+	mov ah, 09h
+	int 21h
+	mov AX,4C00h
+	int 21h
 moreThanOneElement:
 
 l1: ; for(int i = a.size - 1; i > 0; i++)
@@ -59,20 +58,17 @@ l1: ; for(int i = a.size - 1; i > 0; i++)
 	cmp ax, bx
 	jbe else1 ; if(a[i] > a[i-1])
 		sub ax, bx; a[i] - a[i-1]
-		cmp minDiff, ax
-		jbe endOfLoop ;if(minDiff > a[i] - a[i-1])
-			mov minDiff, ax
-			mov minDiffIndex, cx 
-			dec minDiffIndex
-			jmp endOfLoop
+		mov bx, ax
+		jmp endOfCompare
 	else1: ;else
 		sub bx, ax
-		cmp minDiff, bx ; if(minDiff > a[i-1] - a[i]
-		jbe endOfLoop
-			mov minDiff, bx
-			mov minDiffIndex, cx
-			dec minDiffIndex
-		endOfLoop:
+	endOfCompare:
+	cmp minDiff, bx ; if(minDiff > a[i-1] - a[i]
+	jbe endOfLoop
+		mov minDiff, bx
+		mov minDiffIndex, cx
+		dec minDiffIndex
+	endOfLoop:
 loop l1
 
 mov ah, 09h
