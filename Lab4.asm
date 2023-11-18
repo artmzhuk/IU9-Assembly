@@ -5,6 +5,8 @@ maxRadix db 15
 inputBuf1 db 97, 99 dup ('$'); max - actual - 97*data - $
 inputBuf2 db 97, 99 dup ('$')
 illegalCharStr db "Illegal character was encountered, exiting...", 13, 10, '$'
+incorrectOrderStr db "Change the order to + -, exiting...", 13, 10, '$'
+minusStr db "-$"
 result db 0, 99 dup ('$') 
 newline db 13, 10, '$'
 data ends
@@ -32,12 +34,16 @@ arrCharToInt proc ; char* arr
   add si, 2 ; si points to first input character
   arrLoop:
     cmp byte ptr [si], '0'; checks whether character is 
-	jb illegalChar
+	jae aboveCheck
+	  cmp byte ptr [si], '-'
+	  jne illegalChar
+	    inc si
+	    loop arrLoop
+	aboveCheck:
 	cmp byte ptr [si], '9'
 	ja illegalChar 
-	
-    sub byte ptr [si], '0'
-	inc si
+      sub byte ptr [si], '0'
+	  inc si
 	loop arrLoop
 	
   mov sp, bp ; freeing space for locals
@@ -212,35 +218,74 @@ arrIntToChar proc ; char* arr
   ret 2; returns and frees params
 arrIntToChar endp
 
+compute proc
+ mov ah, 0Ah
+ mov dx, offset inputBuf1
+ int 21h
+ call printNewLine
+ push offset inputBuf1
+ call arrCharToInt
+
+ mov ah, 0Ah
+ mov dx, offset inputBuf2
+ int 21h
+ call printNewLine
+ push offset inputBuf2
+ call arrCharToInt
+
+ mov si, offset inputBuf1
+ mov di, offset inputBuf2
+ add si, 2
+ add di, 2
+ cmp [si], byte ptr '-'
+ je firstMinus
+   cmp [di], byte ptr '-'
+	je firstPlusSecondMinus
+	  ;both are +
+	  push offset inputBuf2
+	  push offset inputBuf1
+      call unsignedAdd
+	  jmp endOfSelection
+	firstPlusSecondMinus:
+	  ;+-
+	  mov [di], byte ptr 0
+	  push offset inputBuf2
+	  push offset inputBuf1
+	  call unsignedSub
+	  jmp endOfSelection
+  firstMinus:
+    cmp [di], byte ptr '-'
+	je firstMinusSecondMinus
+	  ;-+
+      mov dx, offset incorrectOrderStr
+      mov ah, 09h
+      int 21h
+      mov ah, 4Ch
+      int 21h
+	firstMinusSecondMinus:
+      mov [di], byte ptr 0
+	  mov [si], byte ptr 0
+      push offset inputBuf2
+	  push offset inputBuf1
+      call unsignedAdd
+	  mov ah, 09h
+	  mov dx, offset minusStr
+	  int 21h
+	  jmp endOfSelection
+  endOfSelection:
+  push offset result
+  call arrIntToChar
+  mov ah, 09h
+  mov dx, offset result
+  int 21h
+  ret
+compute endp
+
 start:
 mov AX, data
 mov DS, AX
 
-mov ah, 0Ah
-mov dx, offset inputBuf1
-int 21h
-call printNewLine
-push offset inputBuf1
-call arrCharToInt
-
-mov ah, 0Ah
-mov dx, offset inputBuf2
-int 21h
-call printNewLine
-push offset inputBuf2
-call arrCharToInt
-
-push offset inputBuf2
-push offset inputBuf1
-
-;call unsignedAdd
-call unsignedSub
-
-push offset result
-call arrIntToChar
-mov ah, 09h
-mov dx, offset result
-int 21h
+call compute
 
 mov ah, 4Ch
 int 21h
