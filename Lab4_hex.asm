@@ -38,13 +38,13 @@ arrCharToInt proc ; char* arr
 	  cmp byte ptr [si], '-'
 	  jne illegalChar
 	    inc si
-	    loop arrLoop
+	    jmp endOfarrCharToIntLoop
 	aboveCheck:
 	cmp byte ptr [si], '9'
 	ja aboveCheck1 
       sub byte ptr [si], '0'
 	  inc si
-	  loop arrLoop
+	  jmp endOfarrCharToIntLoop
 	aboveCheck1:
 	cmp byte ptr [si], 'A'
 	jb illegalChar
@@ -53,6 +53,7 @@ arrCharToInt proc ; char* arr
 	  sub byte ptr [si], 'A'
 	  add byte ptr [si], 10
 	  inc si
+	endOfarrCharToIntLoop:
 	loop arrLoop
 	
   mov sp, bp ; freeing space for locals
